@@ -1,6 +1,7 @@
 from labequipment import daq
 import matplotlib.pyplot as plt
 import numpy as np
+#Make a Change
 
 
 def smooth(data, kernel_size=2000):
