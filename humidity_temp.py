@@ -6,8 +6,8 @@ from datetime import datetime
 
 time = 0
 delay = 20
-pathname = 'Z:/GranularCharge/siliconeballs/2022_09_16'
-expt_name = 'Try2'
+pathname = 'Z:/GranularCharge/BlueBeads/2023_03_20'
+expt_name = 'Try1'
 filename = pathname + '/' + expt_name + '_temphumidity.txt'
 
 with Probe(port='COM3') as probe:
