@@ -39,6 +39,7 @@ print(num_pixels)
 mass_tag = 0.0302E-3#kg
 width_tag = 7.8E-3#m
 scale=width_tag/w #m/px
+print(scale)
 mass_per_px = mass_tag/num_pixels
 
 print(scale)

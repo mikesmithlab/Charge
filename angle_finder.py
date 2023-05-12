@@ -2,9 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def get_theta(L_px):
-    d = 0.012 #Ball diameter
-    d_pixels = 801-550
+def get_theta(L_px, t, W=):
     theta = (np.pi/180)*np.linspace(0,179.9, 1800)
     t=1.5
     W=7.7
