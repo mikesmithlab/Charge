@@ -1,0 +1,35 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+t = 1E-3
+eps = 4*np.pi*8.85E-12
+R = 5E-3
+theta = np.linspace(0, np.pi, 1000)
+nC = 1E-9
+
+
+def torque(q1, q2):
+    q1 *= nC
+    q2 *= nC
+    F_1 = (q1**2 / eps) * 1 / (4 * (R*(1-np.cos(theta)) + t)**2)
+    F_2 = (q2**2 / eps) * 1 / (4 * (R*(1+np.cos(theta)) + t)**2)
+    return F_1 * R * np.sin(theta) - F_2 * R * np.sin(theta)
+
+
+
+
+T_symmetric = torque(2, 2)
+T_symmetric_doublecharge = torque(4, 4)
+T_asymmetric = torque(4, 0)
+
+print('Peak at ', theta[np.argmax(T_symmetric)]*180/np.pi)
+print('Peak at ', theta[np.argmax(T_asymmetric)]*180/np.pi)
+
+plt.figure()
+plt.plot(theta, T_symmetric, 'r-')
+plt.plot(theta, T_symmetric_doublecharge, 'g-')
+plt.plot(theta, T_asymmetric, 'b-')
+plt.xlim([0, np.pi])
+# plt.ylim([0, np.max(T_asymmetric)])
+plt.show()
