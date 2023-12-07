@@ -99,7 +99,7 @@ def find_tag(img, bead_info, width_bead, show=False):
     if show:
         display(img)
     contours = find_contours(img, hierarchy=False)
-    
+
     beadx = bead_info['cx']
     beady = bead_info['cy']
 
@@ -108,8 +108,8 @@ def find_tag(img, bead_info, width_bead, show=False):
         area = cv2.contourArea(cnt)
         if (area < (2*width_bead**2)) & (area > 0.001*width_bead**2):
             cX, cY = com_contour(cnt)
-            #if (cX - beadx)**2 < (0.5*width_bead)**2:
-                   # cnt=cv2.convexHull(cnt)
+            # if (cX - beadx)**2 < (0.5*width_bead)**2:
+            # cnt=cv2.convexHull(cnt)
             reduced_contours.append(cnt)
 
     tag_contour = sort_contours(reduced_contours)[-1]
@@ -188,20 +188,21 @@ if __name__ == '__main__':
     2. Fit the curve to the dipole model. This requires you to create a file of electric field values
 `   """
 
-    pathname = 'C:/Users/ppzmis/OneDrive - The University of Nottingham/Documents/Papers/Charge/Figures/SupplementaryVIds/'
-    filename = 'Torque_1080p.mp4'
+    pathname = "C:/Users/mikei/Downloads/"
+    filename = 'P1001916_cropped.mp4'
 
     # Reads the sequence
     readVid = ReadVideo(pathname + filename)
+    print(readVid.frame_range)
     img = readVid.read_frame(n=0)
 
     # Calc scale from diameter of ball
     scale, diam_px, height_px, left_edge, right_edge = get_scale(img)
-    bead_info={}
+    bead_info = {}
     bead_info['cx'] = (left_edge + right_edge)/2
     bead_info['cy'] = height_px
     readVid.set_frame(n=0)
- 
+
     # Processing params
     params = {'mask_top': 50, 'th1': 130,
               'scale': scale, 'width_bead': diam_px, 'configure': False}
@@ -211,14 +212,16 @@ if __name__ == '__main__':
                       'tag_angle_vertical', 'tag_rotation_angle'], index=range(1, readVid.num_frames+1, 1))
 
     for i, img in enumerate(readVid):
-        if i < 2000:
-            img[:,right_edge:] = 0
+        try:
+            img[:, right_edge:] = 0
             bead_and_tag = extract_bead_and_tag(img, **params)
             tag_info = find_tag(bead_and_tag, bead_info, diam_px)
 
-            if i % 1000 == 0:
+            if (i % 100 == 0):
                 print(i)
                 annotate_img(img.copy(), tag_info, bead_info, diam_px)
             df.loc[i+1] = get_data(tag_info, bead_info, scale)
-
+        except:
+            print(i)
+            break
     df.to_csv(pathname + filename[:-5] + 'test.csv')

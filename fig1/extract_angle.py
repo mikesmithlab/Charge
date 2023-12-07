@@ -1,7 +1,7 @@
 from labvision.video import ReadVideo
 from labvision.images.basics import display
-from labvision.images.thresholding import threshold
-from labvision.images import find_contours, sort_contours, draw_polygon, draw_circle, find_contours, sort_contours, rotated_bounding_rectangle,get_shape
+from labvision.images.thresholds import threshold
+from labvision.images import find_contours, sort_contours, draw_polygon, draw_circle, find_contours, sort_contours, rotated_bounding_rectangle, get_shape
 
 import cv2
 import matplotlib.pyplot as plt
@@ -46,8 +46,8 @@ def get_largest_contour(img, width_bead):
 
 def com_contour(contour):
     M = cv2.moments(contour)
-    cX = M["m10"]/M["m00"]
-    cY = M["m01"]/M["m00"]
+    cX = M["m10"] / M["m00"]
+    cY = M["m01"] / M["m00"]
     return cX, cY
 
 
@@ -70,7 +70,7 @@ def find_bead_xy(img, width_bead):
         if (pt[0] < min_x) and (pt[1] > comY):
             min_x = pt[0]
 
-    info['cx'] = (max_x + min_x)/2
+    info['cx'] = (max_x + min_x) / 2
     info['cy'] = centre_y
 
     return info
@@ -86,7 +86,7 @@ def mask_bead(img, bead_info, width_bead):
     bead_info : _type_
         dictionary like {'cx': , 'cy':}
     """
-    img[bead_info['cy']-int(width_bead/2):, :] = 0
+    img[bead_info['cy'] - int(width_bead / 2):, :] = 0
     return img
 
 
@@ -101,16 +101,16 @@ def find_tag(img, bead_info, width_bead):
     reduced_contours = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if (area < (2*width_bead**2)) & (area > 0.05*width_bead**2):
+        if (area < (2 * width_bead**2)) & (area > 0.05 * width_bead**2):
             cX, cY = com_contour(cnt)
-            if (cX - beadx)**2 < (0.5*width_bead)**2:
+            if (cX - beadx)**2 < (0.5 * width_bead)**2:
                 # cnt=cv2.convexHull(cnt)
                 reduced_contours.append(cnt)
 
     tag_contour = sort_contours(reduced_contours)[-1]
     M = cv2.moments(tag_contour)
-    cX = M["m10"]/M["m00"]
-    cY = M["m01"]/M["m00"]
+    cX = M["m10"] / M["m00"]
+    cY = M["m01"] / M["m00"]
 
     min_value_x = int(cX) - width_bead
     max_value_x = int(cX) + width_bead
@@ -118,18 +118,18 @@ def find_tag(img, bead_info, width_bead):
     if min_value_x < 0:
         min_value_x = 0
     if max_value_x > get_shape(bead_and_tag)[1]:
-        max_value_x = get_shape(bead_and_tag)[1]-1
+        max_value_x = get_shape(bead_and_tag)[1] - 1
 
     width_slice = np.sum(
-        img[int(cY)-10:int(cY) + 10, min_value_x:max_value_x], axis=0)
+        img[int(cY) - 10:int(cY) + 10, min_value_x:max_value_x], axis=0)
 
     indices = np.where(width_slice > 100)
 
     minx = np.min(indices) + min_value_x
     maxx = np.max(indices) + min_value_x
-    width = maxx-minx
+    width = maxx - minx
 
-    angle = np.arctan2((cX-beadx), (cY-beady))
+    angle = np.arctan2((cX - beadx), (cY - beady))
 
     (_, _, w, h) = cv2.boundingRect(tag_contour)
 
@@ -151,7 +151,7 @@ def annotate_img(img, tag_info, bead_info, diam_px):
 
     annotated_img = draw_polygon(img.copy(), tag_info['box'], thickness=2)
     annotated_img = draw_circle(annotated_img, int(
-        bead_info['cx']), int(bead_info['cy']), int(diam_px/2), color=(0, 255, 0), thickness=2)
+        bead_info['cx']), int(bead_info['cy']), int(diam_px / 2), color=(0, 255, 0), thickness=2)
     # annotated_img = cv2.line(annotated_img, (int(bead_info['cx']), int(
     #    bead_info['cy'])), (int(tag_info['cx']), int(tag_info['cy'])), (255, 255, 0), 3)
     annotated_img = cv2.line(annotated_img, (int(tag_info['minx']), int(
@@ -162,14 +162,14 @@ def annotate_img(img, tag_info, bead_info, diam_px):
 
 
 def get_data(tag_info, bead_info, scale):
-    return [bead_info['cx'], bead_info['cy'], bead_info['cx']*scale, bead_info['cy']*scale, tag_info['width'], tag_info['angle'], get_theta(tag_info['width'], scale=scale)]
+    return [bead_info['cx'], bead_info['cy'], bead_info['cx'] * scale, bead_info['cy'] * scale, tag_info['width'], tag_info['angle'], get_theta(tag_info['width'], scale=scale)]
 
 
 def get_theta(Width_px, t=0.7E-3, W=7.7E-3, scale=1):
-    theta = (np.pi/180)*np.linspace(0, 89.9, 1800)
-    L = np.abs(W*np.cos(theta))+np.abs(t*np.sin(theta))
-    index = np.argmin(np.abs(scale*Width_px - L))
-    theta_measured = theta[index]*180/np.pi
+    theta = (np.pi / 180) * np.linspace(0, 89.9, 1800)
+    L = np.abs(W * np.cos(theta)) + np.abs(t * np.sin(theta))
+    index = np.argmin(np.abs(scale * Width_px - L))
+    theta_measured = theta[index] * 180 / np.pi
     return theta_measured
 
 
@@ -183,7 +183,8 @@ if __name__ == '__main__':
     2. Fit the curve to the dipole model. This requires you to create a file of electric field values
 `   """
 
-    pathname = 'Z:\\GranularCharge\\WhiteBead\\2023_09_07\\'
+    # pathname = 'Z:\\GranularCharge\\WhiteBead\\2023_11_06\\'
+    pathname = 'Z:/GranularCharge/Delrin/2023_11_10/'
     filename = 'img*.png'
 
     # Reads the sequence
@@ -201,7 +202,7 @@ if __name__ == '__main__':
     print(readVid.num_frames)
     # Setup dataframe to receive data
     df = pd.DataFrame(columns=['beadx', 'beady', 'beadx_m', 'beady_m', 'tag_proj_width',
-                      'tag_angle_vertical', 'tag_rotation_angle'], index=range(1, readVid.num_frames+1, 1))
+                      'tag_angle_vertical', 'tag_rotation_angle'], index=range(1, readVid.num_frames + 1, 1))
 
     for i, img in enumerate(readVid):
         bead_and_tag = extract_bead_and_tag(img, **params)
@@ -211,6 +212,6 @@ if __name__ == '__main__':
         if i % 1 == 0:
             print(i)
             annotate_img(img.copy(), tag_info, bead_info, diam_px)
-        df.loc[i+1] = get_data(tag_info, bead_info, scale)
+        df.loc[i + 1] = get_data(tag_info, bead_info, scale)
 
     df.to_csv(pathname + filename[:-5] + 'test.csv')
