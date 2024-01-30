@@ -1,3 +1,5 @@
+"""Takes the output of the patch simulation and converts into format for Ovito visualisation software."""
+
 # -*- coding: utf-8 -*-
 """
 Created on Thu Oct 12 12:31:20 2023

@@ -15,6 +15,10 @@ import os
 from labvision.video import WriteVideo
 
 
+"""-----------------------------------------------------------------------
+Visualization
+----------------------------------------------------------------------------"""
+
 def Sphere(centre=[0., 0., 0.], radius=1.,
            n_meridians=200, n_circles_latitude=None):
     """
@@ -79,10 +83,75 @@ def plot_charged_sphere(ax, xc, yc, zc, r, gap):
 
     return ax
 
+def display_plot(ax, fig, i, theta, phi, dipole_angle, total_tau, sticking_force, r, gap, seed, dtheta, path, N, Q):
+    max_tau = np.max(np.abs(1e6*total_tau))
+    max_F = -np.max(np.abs(1e3*sticking_force))
+    ax1,ax2,ax3=ax
+    ax1.clear()
+    ax2.clear()
+    ax3.clear()
+    ax2.set_ylim(-max_tau, max_tau)
+    ax2.set_xlim(0, 2*np.pi)
+    ax3.set_ylim(max_F, 0)
+    ax3.set_xlim(0, 2*np.pi)
+    ax2.set_xlabel(u'\u0394\u03B8 (rad)')
+    ax2.set_ylabel(u'\u03C4 (\u03bcNm)')
+    ax3.set_xlabel(u'\u0394\u03B8 (rad)')
+    ax3.set_ylabel('F (mN)')
+
+
+    
+    pos_charges, _ = calc_charge_coords(theta, phi, r, gap)
+    xc, yc, zc = pos_charges
+    ax1 = plot_charged_sphere(
+        ax1, 1000*xc, 1000*zc, 1000*yc, 1000*r, 1000*gap)  # Convert to mm
+
+    # ax2.plot(dipole_angle[:i], 1e6*sticking_force[:i], '*b')
+    ax2.plot(dipole_angle[:i], 1e6*total_tau[:i], '.r')
+    ax2.plot(dipole_angle[i], 1e6*total_tau[i], 'g.')
+    ax3.plot(dipole_angle[:i], 1e3*sticking_force[:i], '.r')
+    ax3.plot(dipole_angle[i], 1e3*sticking_force[i], 'g.')
+
+    fig.canvas.draw()
+    fig.savefig(path2 + '/torque_model_N' + str(N)  + '_Q' + str(Q) + '_seed' + str(seed) + '.png', format='png')
+
+    #plt.pause(0.001)
+    theta = theta+dtheta
+
+
+def display_anim(N, dipole_angle, total_tau, sticking_force, r, gap, seed=3, dtheta=0.05, DPI=128, final=False):
+    fig = plt.figure(figsize=(4, 5), constrained_layout=False, dpi=DPI)
+    gs = fig.add_gridspec(nrows=20, ncols=20, left=0, right=1, bottom=0, top=1)
+
+    # set up the axes for the first plot
+    ax1 = fig.add_subplot(gs[:11, 1:], projection='3d')
+    ax1.view_init(elev=10., azim=90)
+    # set up the axes for the second plot
+    ax2 = fig.add_subplot(gs[9:12, 4:18])
+    ax3 = fig.add_subplot(gs[13:16, 4:18])
+    ax=(ax1,ax2,ax3)
+    
+    theta, phi = angles(N, seed=seed)
+    
+    if final:
+        display_plot(ax, fig, len(dipole_angle)-1, theta, phi, dipole_angle, total_tau, sticking_force, r, gap, seed, dtheta, path, N, Q)
+    else:
+        for i in range(len(dipole_angle)):
+            display_plot(ax, fig, i, theta, phi, dipole_angle, total_tau, sticking_force, r, gap, seed, dtheta, path, N, Q)
+
+"""-----------------------------------------------------------------------
+Calculation
+----------------------------------------------------------------------------"""
+def angles(N, seed=3):
+    #Creates random theta and phi coordinates for N charges on the surface of a sphere
+    np.random.seed(seed)
+    theta = 2.0*np.pi*np.random.rand(N)
+    theta = theta-theta[0]
+    phi = np.arccos(2*np.random.rand(N)-1)
+    return theta, phi
 
 def calc_dipole(xc, yc, zc):
-    """Calculate the dipole moment of the sphere
-    returns the coordinates of the dipole moment"""
+    """Calculate the of the dipole moment"""
     dipole = np.zeros(3)
     for i in np.arange(len(xc)):
         dipole[0] += xc[i]
@@ -91,14 +160,6 @@ def calc_dipole(xc, yc, zc):
     dipole = dipole/len(xc)
 
     return dipole
-
-
-def angles(N, seed=3):
-    np.random.seed(seed)
-    theta = 2.0*np.pi*np.random.rand(N)
-    theta = theta-theta[0]
-    phi = np.arccos(2*np.random.rand(N)-1)
-    return theta, phi
 
 
 def calc_charge_coords(theta, phi, r, gap):
@@ -132,6 +193,10 @@ def calc_torque_curve(N, r, gap, Q, seed=3, dtheta=0.05, e0=8.85e-12):
     dipole_angle = []
     total_tau = []
     sticking_force = []
+
+    #Here we store the force and torque due to the total charge positioned at the effective dipole position
+    dipole_force = []
+    dipole_torque = []
 
     while (th0 < 2*np.pi):
         pos_charges, dipole = calc_charge_coords(theta, phi, r, gap)
@@ -167,59 +232,31 @@ def calc_torque_curve(N, r, gap, Q, seed=3, dtheta=0.05, e0=8.85e-12):
         total_tau.append(tau)
         dipole_angle.append(th0)
 
+        dipole_separation = (2*dipole[0])
+        dp_force = (-Q*Q*1E-18)/(4.0*np.pi*e0*dipole_separation**2)
+        dipole_force.append(dp_force)
+        dipole_torque.append(dp_force*dipole[2])
+
         theta = theta+dtheta
         th0 = th0+dtheta
     projected_dipole_length = 1000*((dipole[0]-gap - r)**2 + dipole[1]**2)**0.5
 
-    return np.array(dipole_angle), np.array(total_tau), np.array(sticking_force), projected_dipole_length
+    return np.array(dipole_angle), np.array(total_tau), np.array(sticking_force), np.array(dipole_force),np.array(dipole_torque), projected_dipole_length
 
 
-def display_anim(N, dipole_angle, total_tau, sticking_force, r, gap, seed=3, dtheta=0.05, DPI=128):
-    fig = plt.figure(figsize=(4, 5), constrained_layout=False, dpi=DPI)
-    gs = fig.add_gridspec(nrows=20, ncols=20, left=0, right=1, bottom=0, top=1)
 
-    # set up the axes for the first plot
-    ax1 = fig.add_subplot(gs[:13, 1:], projection='3d')
-    ax1.view_init(elev=10., azim=90)
-    # set up the axes for the second plot
-    ax2 = fig.add_subplot(gs[11:16, 4:18])
-    # ax3 = fig.add_subplot(gs[11:16, 4:18])
-
-    ax2.set_xlabel(u'\u0394\u03B8 (rad)')
-    ax2.set_ylabel(u'\u03C4 (\u03bcNm)')
-    max_tau = np.max(np.abs(1e6*total_tau))
-    ax2.set_ylim(-max_tau, max_tau)
-    ax2.set_xlim(0, 2*np.pi)
-
-    theta, phi = angles(N, seed=seed)
-
-    for i in range(len(dipole_angle)):
-        ax1.clear()
-        pos_charges, _ = calc_charge_coords(theta, phi, r, gap)
-        xc, yc, zc = pos_charges
-        ax1 = plot_charged_sphere(
-            ax1, 1000*xc, 1000*zc, 1000*yc, 1000*r, 1000*gap)  # Convert to mm
-
-        # ax2.plot(dipole_angle[:i], 1e6*sticking_force[:i], '*b')
-        ax2.plot(dipole_angle[:i], 1e6*total_tau[:i], '.r')
-        ax2.plot(dipole_angle[:i], 1e6*total_tau[:i], 'r-')
-
-        fig.canvas.draw()
-        fig.savefig(path + 'torque_model' + str(i) + '.png', format='png')
-
-        plt.pause(0.001)
-        theta = theta+dtheta
 
 
 if __name__ == "__main__":
+    import os
 
-    path = 'C:/Users/mikei/OneDrive - The University of Nottingham/Documents/Papers/Charge/Figures/FIgure2/'
+    path = os.environ['USERPROFILE']+ '/OneDrive - The University of Nottingham/Documents/Papers/Charge/Figures/FIgure2/'
     # file = path + 'torque_model.mp4'
     # vid = lv.video.WriteVideo(file, )
 
-    #for N in [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]:
-    if True:
-        N=50
+    for N in [2000, 5000]:
+    #if True:
+        #N=50
 
         # N = 10
         r = 5e-3
@@ -235,23 +272,24 @@ if __name__ == "__main__":
         if os.path.exists(path2) == False:
             os.mkdir(path2)
 
-        #for i in range(500):
-        if True:
-            i=20
-            dipole_angle, total_tau, sticking_force, projected_dipole_length = calc_torque_curve(
+        #Different seeds for random number generator
+        for i in range(500):
+        #if True:
+            #i=20
+            dipole_angle, total_tau, sticking_force, dipole_force, dipole_torque, projected_dipole_length = calc_torque_curve(
                 N, r, gap, Q, dtheta=dtheta, seed=i)
             output_file = path2 + '/torque_model_N' + \
                 str(N) + '_Q' + str(Q) + '_seed' + str(i) + '_d' + \
                 str(projected_dipole_length)
 
             pd.DataFrame({'dipole_angle': dipole_angle, 'total_tau': total_tau,
-                          'sticking_force': sticking_force}).to_csv(output_file + '.csv')
+                          'sticking_force': sticking_force, 'dipole_force':dipole_force, 'dipole_torque': dipole_torque}).to_csv(output_file + '.csv')
 
             if False:
                 plt.figure()
                 plt.plot(dipole_angle, sticking_force, '*b')
                 plt.show()
 
-            if False:
+            if i<50:
                 display_anim(N, dipole_angle, total_tau,
-                             sticking_force, r, gap, seed=i, dtheta=dtheta)
+                             sticking_force, r, gap, seed=i, dtheta=dtheta, final=True)

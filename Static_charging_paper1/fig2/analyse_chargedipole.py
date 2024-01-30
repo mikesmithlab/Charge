@@ -1,3 +1,8 @@
+""" This script is for analysing the charge and dipole in the experiment where we hang a bead from a wire
+    and then record its position as we apply a voltage to the plates.
+"""
+
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt

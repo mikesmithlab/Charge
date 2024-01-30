@@ -1,3 +1,5 @@
+"""Code for generating ghost images at top of figure 3"""
+
 from labvision.video import ReadVideo
 from labvision.images import write_img, display
 import cv2
@@ -19,7 +21,7 @@ def images_to_add(vid, frames, alphas):
     
     for i in range(1,len(images)):
         blendedImage = blendedImage + alphas[i] * images[i]
-        display(blendedImage)
+        print(display(blendedImage))
     blendedImage = (255*blendedImage).astype('uint8')
     return blendedImage
 
@@ -32,7 +34,9 @@ def images_to_add(vid, frames, alphas):
 if __name__ == '__main__':
     filename = "C:/Users/ppzmis\OneDrive - The University of Nottingham/Documents/Papers/Charge/Figures/SupplementaryVIds/Mirror_Charge_HiRes.mp4"
     vid = ReadVideo(filename)
-    img = images_to_add(vid, [0, 550, 662, 1000], [0.6, 0.2, 0.2, 0.6])
-    write_img(img, 'C:/Users/ppzmis\OneDrive - The University of Nottingham/Documents/Papers/Charge/Figures/SupplementaryVIds/Mirror_Charge_HiRes.png')
+    img = images_to_add(vid, [660, 666, 668], [0.6, 0.2, 0.2, 0.6])
+    #img = images_to_add(vid, [0, 550, 662, 1000], [0.6, 0.2, 0.2, 0.6])
+    display(img)
+    #write_img(img, 'C:/Users/ppzmis\OneDrive - The University of Nottingham/Documents/Papers/Charge/Figures/SupplementaryVIds/Mirror_Charge_HiRes.png')
 
     

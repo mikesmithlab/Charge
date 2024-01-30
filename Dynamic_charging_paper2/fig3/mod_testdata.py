@@ -1,3 +1,5 @@
+#Sets up data for ovito visualisation
+
 import pandas as pd
 import numpy as np
 import os

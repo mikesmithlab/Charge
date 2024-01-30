@@ -1,3 +1,5 @@
+"""Used to assemble images into animation of torque model"""
+
 from labvision.video import imgs_to_video
 
 from filehandling import smart_number_sort
