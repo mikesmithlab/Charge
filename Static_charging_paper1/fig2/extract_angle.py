@@ -1,3 +1,13 @@
+
+"""Notes
+
+
+Analysis of the dipole comes in two parts:
+
+1. Extract angles from images in a folder (this script). These then need manually splitting up into experiments
+2. Fit the curve to the dipole model (analyse_charge_dipole.py). This requires you to create a file of electric field values
+"""
+
 from labvision.video import ReadVideo
 from labvision.images.basics import display
 from labvision.images.thresholds import threshold
@@ -162,29 +172,50 @@ def annotate_img(img, tag_info, bead_info, diam_px):
 
 
 def get_data(tag_info, bead_info, scale):
-    return [bead_info['cx'], bead_info['cy'], bead_info['cx'] * scale, bead_info['cy'] * scale, tag_info['width'], tag_info['angle'], get_theta(tag_info['width'], scale=scale)]
+    theta_low, theta_high = get_theta(
+        tag_info['width'], tag_info['angle'], scale=scale)
+    return [bead_info['cx'], bead_info['cy'], bead_info['cx'] * scale, bead_info['cy'] * scale, tag_info['width'], tag_info['angle'], theta_low, theta_high]
 
 
-def get_theta(Width_px, t=0.7E-3, W=7.7E-3, scale=1):
+"""def get_theta(Width_px, t=0.7E-3, W=7.7E-3, scale=1):
     theta = (np.pi / 180) * np.linspace(0, 89.9, 1800)
     L = np.abs(W * np.cos(theta)) + np.abs(t * np.sin(theta))
     index = np.argmin(np.abs(scale * Width_px - L))
     theta_measured = theta[index] * 180 / np.pi
     return theta_measured
+"""
+
+
+def get_theta(Width_px, phi, t=0.7E-3, W=7.7E-3, scale=1):
+
+    theta = (np.pi / 180) * np.linspace(0, 89.9, 1800)
+    L = np.abs(W * np.cos(theta)) + np.abs(t * np.sin(theta))
+
+    index_max = int(np.argmax(L))
+    index_small = int(
+        np.argmin(np.abs(scale * Width_px - L[:index_max] / np.cos(phi*np.pi/180))))
+    index_large = int(np.argmin(np.abs(
+        scale * Width_px - L[index_max:] / np.cos(phi*np.pi/180))))  # / np.cos(phi*np.pi/180)
+
+    print('scale', scale)
+    print('L', L)
+    print('Width_px', Width_px)
+    print('projected width', scale * Width_px)
+    print('theta_small', theta[index_small] * 180 / np.pi)
+    print('theta_max', theta[index_large + index_max] * 180 / np.pi)
+
+    if index_small == 0:
+        theta_measured_low = np.nan
+    else:
+        theta_measured_low = theta[index_small] * 180 / np.pi
+    theta_measured_high = theta[index_large + index_max] * 180 / np.pi
+    return theta_measured_low, theta_measured_high
 
 
 if __name__ == '__main__':
 
-    """Notes
-
-    Analysis of the dipole comes in two parts:
-
-    1. Extract angles from images in a folder. These then need manually splitting up into experiments
-    2. Fit the curve to the dipole model. This requires you to create a file of electric field values
-`   """
-
     # pathname = 'Z:\\GranularCharge\\WhiteBead\\2023_11_06\\'
-    pathname = 'Z:/GranularCharge/Delrin/2023_11_10/'
+    pathname = 'E:/RawData/Mike/charge_papers_data/dipole_torque/2024_01_25/'
     filename = 'img*.png'
 
     # Reads the sequence
@@ -202,16 +233,15 @@ if __name__ == '__main__':
     print(readVid.num_frames)
     # Setup dataframe to receive data
     df = pd.DataFrame(columns=['beadx', 'beady', 'beadx_m', 'beady_m', 'tag_proj_width',
-                      'tag_angle_vertical', 'tag_rotation_angle'], index=range(1, readVid.num_frames + 1, 1))
+                      'tag_angle_vertical', 'tag_rotation_angle_low', 'tag_rotation_angle_high'], index=range(1, readVid.num_frames + 1, 1))
 
     for i, img in enumerate(readVid):
         bead_and_tag = extract_bead_and_tag(img, **params)
         bead_info = find_bead_xy(bead_and_tag, diam_px)
         tag_info = find_tag(bead_and_tag, bead_info, diam_px)
-
+        df.loc[i + 1] = get_data(tag_info, bead_info, scale)
         if i % 1 == 0:
             print(i)
             annotate_img(img.copy(), tag_info, bead_info, diam_px)
-        df.loc[i + 1] = get_data(tag_info, bead_info, scale)
 
     df.to_csv(pathname + filename[:-5] + 'test.csv')

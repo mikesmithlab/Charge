@@ -38,7 +38,7 @@ def calc_dipole(df, charge):
 
     qr_sk = (charge * R_bead / (d_plates * kappa))
     print(qr_sk)
-    guess = [0.5 * qr_sk, 180]
+    guess = [0.5 * qr_sk, 270]
 
     fit.add_params(guess=guess,
                    lower=[1.1 * qr_sk, 0], upper=[0, 360])
@@ -71,10 +71,10 @@ def dirty_fit(df, charge):
 
 if __name__ == '__main__':
 
-    path = 'Z:/GranularCharge/Delrin/2023_11_09/'
+    path = 'E:/RawData/Mike/charge_papers_data/dipole_torque/2024_01_30/'
 
-    filename = 'Bead1curved.csv'
-    bead_type = 'DELRIN'
+    filename = 'bead2.csv'
+    bead_type = 'PTFE'
 
     df = pd.read_csv(path + filename)
     charge = calc_charge(df, bead_type)
