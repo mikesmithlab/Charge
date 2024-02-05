@@ -270,28 +270,31 @@ if __name__ == "__main__":
 
     #Simulation parameters
     r = 5e-3 # m - rad of sphere
-    Q = 5  # nC
+    Q = 5.57  # nC
+    dQ = 1.81
+    new_Q = Q
     dtheta = 0.05  # increment to calc talk at
     gap = 0.5e-3 # thickness of glass slide
     L = 3*r
     scale = 1000  # Plot everything in mm
-    num_charges = [50]
+    num_charges = [2, 5, 10, 20, 50, 100, 200, 500, 1000]
     num_seeds = 500
     num_view = 50 # This is the seed you want to view
 
     for N in num_charges:
         print(N)
         #Output folder for a particular number of charges
-        path2 = path + 'model_output/N' + str(N) + '_Q' + str(Q)
+        path2 = path + 'model_output/N' + str(N) + '_Qrandom' #'_Q' + str(Q)
 
         if os.path.exists(path2) == False:
             os.mkdir(path2)
 
         #Different seeds for random number generator
         for i in range(num_seeds):
+            new_Q = np.random.normal(Q, dQ)
             #Run simulation for single realisation
             dipole_angle, total_tau, sticking_force, dipole_force, dipole_torque, projected_dipole_length, central_charge_force = calc_torque_curve(
-                N, r, gap, Q, dtheta=dtheta, seed=i)
+                N, r, gap, new_Q, dtheta=dtheta, seed=i)
             
             #Store results for single realisation of N charges
             output_file = path2 + '/torque_model_N' + \
