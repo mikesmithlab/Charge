@@ -30,56 +30,48 @@ def calc_charge(df, bead_type):
 
 
 def calc_dipole(df, charge):
-    df['dtheta'] = df['adjusted_angle'] - df['adjusted_angle'].iloc[0]
+    th0 = df['adjusted_angle'].iloc[0]
+    df['dtheta'] = df['adjusted_angle'] - th0
     dtheta = df['dtheta'].to_numpy()
     index = np.argsort(dtheta)
     voltage = 1000 * df['voltage'].to_numpy()
     fit = Fit('dipole_fit', x=dtheta[index], y=voltage[index])
 
     qr_sk = (charge * R_bead / (d_plates * kappa))
-    print(qr_sk)
-    guess = [0.5 * qr_sk, 270]
+    guess = [0.5 * qr_sk, 200]
 
     fit.add_params(guess=guess,
-                   lower=[1.1 * qr_sk, 0], upper=[0, 360])
-    fit.fit()
+                   lower=[0, 0], upper=[1.1 * qr_sk, 360])  # Positive beads
+    # lower=[1.1 * qr_sk, 0], upper=[0, 360])  # Negative beads
+
+    fit.fit(interpolation_factor=0.01)
     fit.plot_fit(xlabel='dtheta (deg)', ylabel='voltage (V)')
     dipole = fit.fit_params[0] * (d_plates * kappa)
     theta_0 = fit.fit_params[1]
 
-    dtheta_fine = np.linspace(-140, 0, 1000)
-    np.savetxt('dtheta_fit.csv', np.c_[dtheta_fine, dipole_fit(
-        dtheta_fine, fit.fit_params[0], fit.fit_params[1]) / (1000 * 0.13)], fmt='%.7f', delimiter=',')
+    dtheta_fine = np.linspace(-100, 100, 1000)
+
+    np.savetxt('data_pts.csv', np.c_[
+               fit.fx + th0, fit.fy/0.13, df['beadx_m'].to_numpy()], fmt='%.7f', delimiter=',')
+    np.savetxt('dtheta_fit.csv', np.c_[
+               fit.fit_x + th0, fit.fit_y/0.13], fmt='%.7f', delimiter=',')
 
     return dipole, theta_0
 
 
-def dirty_fit(df, charge):
-    df['dtheta'] = df['adjusted_angle'] - df['adjusted_angle'].iloc[0]
-    dtheta = df['dtheta'].to_numpy()
-    index = np.argsort(dtheta)
-    voltage = 1000 * df['voltage'].to_numpy()
-    qr_sk = (charge * R_bead / (d_plates * kappa))
-    for theta_0 in np.linspace(0, 350, 36):
-        guess = [0.5 * qr_sk, theta_0]
-        plt.figure()
-        plt.plot(dtheta[index], voltage[index], 'go')
-        plt.plot(dtheta[index], dipole_fit(
-            dtheta[index], guess[0], guess[1]), 'r-')
-    plt.show()
-
-
 if __name__ == '__main__':
 
-    path = 'E:/RawData/Mike/charge_papers_data/dipole_torque/2024_01_30/'
+    path = 'E:/RawData/Mike/charge_papers_data/dipole_torque/2024_02_14/'
+    # path = 'C:/Users/mikei/OneDrive - The University of Nottingham/Documents/Papers/Charge/Static_Charging/Figures/Figure2/'
 
-    filename = 'bead2.csv'
-    bead_type = 'PTFE'
+    filename = 'Bead2.csv'
+    bead_type = 'PP'
 
     df = pd.read_csv(path + filename)
     charge = calc_charge(df, bead_type)
-    # dirty_fit(df, charge)
+
     dipole, theta_0 = calc_dipole(df, charge)
+    # dirty_fit(df, dipole, charge)
 
     print(f'Charge is {charge *1e9 :2.3} nC')
     print(

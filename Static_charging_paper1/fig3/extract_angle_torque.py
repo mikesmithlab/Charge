@@ -1,3 +1,4 @@
+
 from labvision.video import ReadVideo
 from labvision.images.basics import display
 from labvision.images.thresholds import threshold
@@ -18,9 +19,11 @@ def get_scale(img, width=9.8E-3):
     height_px = int(coords[0][1])
     left_edge = coords[1][0]
     right_edge = coords[1][0]
+    top_edge = coords[1][1]
+    print(left_edge, right_edge)
     print('Scale is : {}'.format(scale))
     print('Width_pixels : {}'.format(width_pixels))
-    return scale, width_pixels, height_px, left_edge, right_edge
+    return scale, width_pixels, height_px, left_edge, right_edge, top_edge
 
 
 def extract_bead_and_tag(img, mask_top=10, th1=26, configure=False, **kwargs):
@@ -89,15 +92,18 @@ def mask_bead(img, bead_info, width_bead):
     bead_info : _type_
         dictionary like {'cx': , 'cy':}
     """
-    img[bead_info['cy']-int(width_bead/2):, :] = 0
+    img[(bead_info['cy']-int(width_bead)/2):, :] = 0
+    # img[:, bead_info['cx']+int(width_bead)/2:] = 0
     return img
 
 
 def find_tag(img, bead_info, width_bead, show=False):
     """Find the tag in the image"""
-    img = mask_bead(img, bead_info, width_bead)
+    # img = mask_bead(img, bead_info, width_bead)
+
     if show:
         display(img)
+
     contours = find_contours(img, hierarchy=False)
 
     beadx = bead_info['cx']
@@ -167,15 +173,26 @@ def annotate_img(img, tag_info, bead_info, diam_px):
 
 
 def get_data(tag_info, bead_info, scale):
-    return [bead_info['cx'], bead_info['cy'], bead_info['cx']*scale, bead_info['cy']*scale, tag_info['width'], tag_info['angle'], get_theta(tag_info['width'], scale=scale)]
+    theta_measured_low, theta_measured_high, Width_px = get_theta(
+        tag_info['width'], scale=scale)
+    return [bead_info['cx'], bead_info['cy'], bead_info['cx']*scale, bead_info['cy']*scale, tag_info['width'], tag_info['angle'], theta_measured_low, theta_measured_high, Width_px]
 
 
-def get_theta(Width_px, t=0.7E-3, W=7.7E-3, scale=1):
+def get_theta(Width_px, t=0.7E-3, W=7.457E-3, scale=1):
     theta = (np.pi/180)*np.linspace(0, 89.9, 1800)
     L = np.abs(W*np.cos(theta))+np.abs(t*np.sin(theta))
-    index = np.argmin(np.abs(scale*Width_px - L))
-    theta_measured = theta[index]*180/np.pi
-    return theta_measured
+
+    index_max = int(np.argmax(L))
+    index_small = int(np.argmin(np.abs(scale * Width_px - L[:index_max])))
+    # / np.cos(phi*np.pi/180)
+    index_large = int(np.argmin(np.abs(scale * Width_px - L[index_max:])))
+
+    if index_small == 0:
+        theta_measured_low = np.nan
+    else:
+        theta_measured_low = theta[index_small] * 180 / np.pi
+    theta_measured_high = theta[index_large + index_max] * 180 / np.pi
+    return theta_measured_low, theta_measured_high, Width_px
 
 
 if __name__ == '__main__':
@@ -188,40 +205,47 @@ if __name__ == '__main__':
     2. Fit the curve to the dipole model. This requires you to create a file of electric field values
 `   """
 
-    pathname = "C:/Users/mikei/Downloads/"
-    filename = 'P1001916_cropped.mp4'
+    pathname = "C:/Users/ppzmis/OneDrive - The University of Nottingham/Documents/Papers/Charge/Static_Charging/Figures/Figure3/"
+    filename = 'P1001989.mp4'
 
     # Reads the sequence
     readVid = ReadVideo(pathname + filename)
-    print(readVid.frame_range)
     img = readVid.read_frame(n=0)
 
     # Calc scale from diameter of ball
-    scale, diam_px, height_px, left_edge, right_edge = get_scale(img)
+    scale, diam_px, height_px, left_edge, right_edge, top_edge = get_scale(img)
     bead_info = {}
     bead_info['cx'] = (left_edge + right_edge)/2
     bead_info['cy'] = height_px
     readVid.set_frame(n=0)
 
     # Processing params
-    params = {'mask_top': 50, 'th1': 130,
-              'scale': scale, 'width_bead': diam_px, 'configure': False}
+    params = {'mask_top': 50, 'th1': 207,
+              'scale': scale, 'width_bead': diam_px, 'configure': False}  # 130,
 
     # Setup dataframe to receive data
     df = pd.DataFrame(columns=['beadx', 'beady', 'beadx_m', 'beady_m', 'tag_proj_width',
-                      'tag_angle_vertical', 'tag_rotation_angle'], index=range(1, readVid.num_frames+1, 1))
+                      'tag_angle_vertical', 'tag_rotation_angle_low', 'tag_rotation_angle_high', 'width_px'], index=range(1, readVid.num_frames+1, 1))
 
     for i, img in enumerate(readVid):
         try:
             img[:, right_edge:] = 0
+            img[int(top_edge):, :] = 0
             bead_and_tag = extract_bead_and_tag(img, **params)
             tag_info = find_tag(bead_and_tag, bead_info, diam_px)
 
-            if (i % 100 == 0):
+            if (i % 4000 == 0):
                 print(i)
                 annotate_img(img.copy(), tag_info, bead_info, diam_px)
-            df.loc[i+1] = get_data(tag_info, bead_info, scale)
+            df.loc[i+1] = get_data(tag_info, bead_info, 5.6976E-5)
         except:
             print(i)
             break
-    df.to_csv(pathname + filename[:-5] + 'test.csv')
+
+    df['angle'] = df['tag_rotation_angle_high']
+    df['angle'][df['tag_rotation_angle_low'].notna(
+    )] = df['tag_rotation_angle_low'][df['tag_rotation_angle_low'].notna()]
+    df['angle'].plot()
+    plt.show()
+
+    df.to_csv(pathname + filename[:-4] + 'test_t07W745.csv')

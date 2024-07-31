@@ -191,6 +191,10 @@ def get_theta(Width_px, phi, t=0.7E-3, W=7.7E-3, scale=1):
     theta = (np.pi / 180) * np.linspace(0, 89.9, 1800)
     L = np.abs(W * np.cos(theta)) + np.abs(t * np.sin(theta))
 
+    #plt.figure()
+    #plt.plot(theta * 180 / np.pi, L)
+    #plt.show()
+
     index_max = int(np.argmax(L))
     index_small = int(
         np.argmin(np.abs(scale * Width_px - L[:index_max] / np.cos(phi*np.pi/180))))
@@ -215,7 +219,8 @@ def get_theta(Width_px, phi, t=0.7E-3, W=7.7E-3, scale=1):
 if __name__ == '__main__':
 
     # pathname = 'Z:\\GranularCharge\\WhiteBead\\2023_11_06\\'
-    pathname = 'E:/RawData/Mike/charge_papers_data/dipole_torque/2024_01_25/'
+    pathname = 'E:/RawData/Mike/charge_papers_data/dipole_torque/2024_02_16/'
+    #pathname = 'C:/Users/mikei/OneDrive - The University of Nottingham/Documents/Papers/Charge/Static_Charging/Figures/Figure2/2024_01_26/'
     filename = 'img*.png'
 
     # Reads the sequence
@@ -227,8 +232,8 @@ if __name__ == '__main__':
     readVid.set_frame(n=0)
 
     # Processing params
-    params = {'mask_top': 50, 'th1': 100,
-              'scale': scale, 'width_bead': diam_px, 'configure': False}
+    params = {'mask_top': 50, 'th1': 70,
+              'scale': scale, 'width_bead': diam_px, 'configure': False}#threshold normally 100
 
     print(readVid.num_frames)
     # Setup dataframe to receive data

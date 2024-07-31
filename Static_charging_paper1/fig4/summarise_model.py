@@ -10,7 +10,7 @@ final = True  # collate above into file for plotting
 path = os.environ['USERPROFILE'] + \
     '/OneDrive - The University of Nottingham/Documents/Papers/Charge/Static_Charging/Figures/Figure4/model_output/'
 
-ending = '_Qrandom'
+ending = '_Q5'
 
 if initial:
 
@@ -40,16 +40,16 @@ if initial:
             dipole_Fmin.append(df['dipole_force'].abs().min())
             dipole_Tmin.append(df['dipole_torque'].abs().min())
             dipole_Tmax.append(df['dipole_torque'].abs().max())
-            dipole_length.append(df['dipole_length'].max())
+            #dipole_length.append(df['dipole_length'].max())
 
         pd.DataFrame({'Fmin': Fmin, 'Fmax': Fmax, 'Tmin': Tmin, 'Tmax': Tmax, 'dipole_Fmin': dipole_Fmin, 'dipole_Fmax': dipole_Fmax,
-                     'dipole_Tmin': dipole_Tmin, 'dipole_Tmax': dipole_Tmax, 'dipole_length': dipole_length}).to_csv(path + 'summary_N' + str(n) + ending + '.csv')
+                     'dipole_Tmin': dipole_Tmin, 'dipole_Tmax': dipole_Tmax}).to_csv(path + 'summary_N' + str(n) + ending + '.csv')
 
 
 if final:
     nvals = [2, 5, 10, 20, 50, 100, 200, 500, 1000]
     results = {'N': nvals, 'Fmax': [], 'Fmin': [], 'Tmax': [], 'Tmin': [
-    ], 'D_Tmax': [], 'D_Tmin': [], 'D_Fmax': [], 'D_Fmin': [], 'D_length': []}
+    ], 'D_Tmax': [], 'D_Tmin': [], 'D_Fmax': [], 'D_Fmin': []}
 
     for N in nvals:
 
@@ -63,6 +63,6 @@ if final:
         results['D_Fmin'].append(df['dipole_Fmin'].median())
         results['D_Tmax'].append(df['dipole_Tmax'].median())
         results['D_Tmin'].append(df['dipole_Tmin'].median())
-        results['D_length'].append(df['dipole_length'].median())
+        
 
     pd.DataFrame(results).to_csv(path + ending + 'complete_summary.csv')
